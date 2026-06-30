@@ -96,6 +96,8 @@ export function apply(ctx: Context, config: Config): void {
       fallback: config.maxRedirects,
     })
     .option("verbose", "-v 显示详细信息", { fallback: false })
+    .option("responseHeaders", "--response-headers 显示响应头", { fallback: false })
+    .option("responseBody", "--response-body 显示响应体", { fallback: false })
     .option("showurl", "-s 显示URL (覆盖全局设置)", { fallback: false })
     .action(async ({ options: opts, session }, url) => {
       const options = opts!;
@@ -160,6 +162,8 @@ export function apply(ctx: Context, config: Config): void {
           fallback: "",
         })
         .option("verbose", "-v 显示详细信息", { fallback: false })
+        .option("responseHeaders", "--response-headers 显示响应头", { fallback: false })
+        .option("responseBody", "--response-body 显示响应体", { fallback: false })
         .option("showurl", "-s 显示URL (覆盖其他设置)", { fallback: false })
         .action(async ({ options: opts, session }) => {
           const options = opts!;
@@ -287,31 +291,39 @@ export function apply(ctx: Context, config: Config): void {
 
       let result = "";
 
-      if (options.verbose) {
+      if (options.verbose || options.responseHeaders || options.responseBody) {
+        const showHeaders = options.verbose || options.responseHeaders;
+        const showBody = options.verbose || options.responseBody;
+
         if (customConfig.showUrl) {
           result += `请求 URL: ${url}\n`;
         }
         result += `状态码: ${response.status} ${response.statusText || ""}\n`;
         result += `响应时间: ${responseTime}ms\n\n`;
-        result += "响应头:\n";
-        for (const [key, value] of Object.entries(response.headers)) {
-          result += `${key}: ${value}\n`;
-        }
-        result += "\n响应体预览 (前500字符):\n";
-        const contentType = String(response.headers["content-type"] || "");
-        if (contentType.includes("text") || contentType.includes("json")) {
-          let responseText =
-            typeof response.data === "string"
-              ? response.data
-              : JSON.stringify(response.data, null, 2);
-          if (responseText.length > 500) {
-            responseText = responseText.substring(0, 500) + "...";
-            console.log(responseText);
+
+        if (showHeaders) {
+          result += "响应头:\n";
+          for (const [key, value] of Object.entries(response.headers)) {
+            result += `${key}: ${value}\n`;
           }
-          result += responseText;
-          console.log("最后结果：", result);
-        } else {
-          result += `[二进制数据 - ${contentType}]`;
+          result += "\n";
+        }
+
+        if (showBody) {
+          result += "响应体预览 (前500字符):\n";
+          const contentType = String(response.headers["content-type"] || "");
+          if (contentType.includes("text") || contentType.includes("json") || contentType.includes("javascript")) {
+            let responseText =
+              typeof response.data === "string"
+                ? response.data
+                : JSON.stringify(response.data, null, 2);
+            if (responseText.length > 500) {
+              responseText = responseText.substring(0, 500) + "...";
+            }
+            result += responseText;
+          } else {
+            result += `[二进制数据 - ${contentType}]`;
+          }
         }
       } else {
         if (response.status < 400) {
