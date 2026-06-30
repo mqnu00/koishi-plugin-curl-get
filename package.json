@@ -12,13 +12,13 @@
     "build": "tsc"
   },
   "license": "MIT",
-  "homepage": "https://github.com/moeneri/koishi-plugin-curl-get#readme",
+  "homepage": "https://github.com/mqnu00/koishi-plugin-curl-get#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/moeneri/koishi-plugin-curl-get.git"
+    "url": "https://github.com/mqnu00/koishi-plugin-curl-get.git"
   },
   "bugs": {
-    "url": "https://github.com/moeneri/koishi-plugin-curl-get/issues"
+    "url": "https://github.com/mqnu00/koishi-plugin-curl-get/issues"
   },
   "keywords": [
     "chatbot",
@@ -32,9 +32,9 @@
     "moeneri <moeneriii@gmail.com>"
   ],
   "author": {
-    "name": "moeneri",
-    "email": "moeneriii@gmail.com",
-    "url": "https://github.com/moeneri"
+    "name": "mqnu00",
+    "email": "647983952@qq.com",
+    "url": "https://github.com/mqnu00"
   },
   "peerDependencies": {
     "koishi": "^4.18.7"
