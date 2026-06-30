@@ -96,8 +96,16 @@ export function apply(ctx: Context, config: Config): void {
       fallback: config.maxRedirects,
     })
     .option("verbose", "-v 显示详细信息", { fallback: false })
-    .option("responseHeaders", "--response-headers 显示响应头", { fallback: false })
-    .option("responseBody", "--response-body 显示响应体", { fallback: false })
+    .option("responseHeaders", "--response-headers 显示响应头", {
+      fallback: false,
+    })
+    .option(
+      "responseBody",
+      "--response-body <length:number> 显示响应体 (数字:长度, 默认500, -1不限制)",
+      {
+        fallback: 500,
+      },
+    )
     .option("showurl", "-s 显示URL (覆盖全局设置)", { fallback: false })
     .action(async ({ options: opts, session }, url) => {
       const options = opts!;
@@ -162,8 +170,16 @@ export function apply(ctx: Context, config: Config): void {
           fallback: "",
         })
         .option("verbose", "-v 显示详细信息", { fallback: false })
-        .option("responseHeaders", "--response-headers 显示响应头", { fallback: false })
-        .option("responseBody", "--response-body 显示响应体", { fallback: false })
+        .option("responseHeaders", "--response-headers 显示响应头", {
+          fallback: false,
+        })
+        .option(
+          "responseBody",
+          "--response-body <length:number> 显示响应体 (数字:长度, 默认500, -1不限制)",
+          {
+            fallback: 500,
+          },
+        )
         .option("showurl", "-s 显示URL (覆盖其他设置)", { fallback: false })
         .action(async ({ options: opts, session }) => {
           const options = opts!;
@@ -310,15 +326,24 @@ export function apply(ctx: Context, config: Config): void {
         }
 
         if (showBody) {
-          result += "响应体预览 (前500字符):\n";
+          const bodyLength = options.responseBody || "500";
+          if (bodyLength === -1) {
+            result += "响应体:\n";
+          } else {
+            result += `响应体预览 (前${bodyLength}字符):\n`;
+          }
           const contentType = String(response.headers["content-type"] || "");
-          if (contentType.includes("text") || contentType.includes("json") || contentType.includes("javascript")) {
+          if (
+            contentType.includes("text") ||
+            contentType.includes("json") ||
+            contentType.includes("javascript")
+          ) {
             let responseText =
               typeof response.data === "string"
                 ? response.data
                 : JSON.stringify(response.data, null, 2);
-            if (responseText.length > 500) {
-              responseText = responseText.substring(0, 500) + "...";
+            if (bodyLength !== -1 && responseText.length > bodyLength) {
+              responseText = responseText.substring(0, bodyLength) + "...";
             }
             result += responseText;
           } else {
