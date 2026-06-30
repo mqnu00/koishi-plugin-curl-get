@@ -1,0 +1,59 @@
+{
+  "name": "koishi-plugin-curl-get",
+  "version": "0.0.3",
+  "description": "一个 Koishi 插件，可以发送 curl 请求，支持绑定命令、Cookie、User-Agent，并返回响应结果。",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/moeneri/koishi-plugin-curl-get#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/moeneri/koishi-plugin-curl-get.git"
+  },
+  "bugs": {
+    "url": "https://github.com/moeneri/koishi-plugin-curl-get/issues"
+  },
+  "keywords": [
+    "chatbot",
+    "curl",
+    "http",
+    "koishi",
+    "plugin",
+    "neri"
+  ],
+  "contributors": [
+    "moeneri <moeneriii@gmail.com>"
+  ],
+  "author": {
+    "name": "moeneri",
+    "email": "moeneriii@gmail.com",
+    "url": "https://github.com/moeneri"
+  },
+  "peerDependencies": {
+    "koishi": "^4.18.7"
+  },
+  "dependencies": {
+    "axios": "^1.10.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "koishi": {
+    "description": {
+      "zh": "可以用来发送 curl 请求，支持绑定命令、Cookie、User-Agent，并返回响应内容。",
+      "en": "A Koishi plugin that sends curl requests and returns response content. Supports command binding, cookies, and custom User-Agent."
+    },
+    "service": {
+      "required": [],
+      "optional": [],
+      "implements": []
+    }
+  }
+}
