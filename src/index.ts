@@ -141,29 +141,34 @@ export function apply(ctx: Context, config: Config): void {
         return "--render-image 和 --response-body 不能同时使用";
       }
 
-      if (options.renderImage && config.renderAsImage) {
-        options.responseBody = options.responseBody || -1;
-      } else if (options.renderImage) {
-        return "未启用 renderAsImage 功能，无法将响应体渲染为图片";
-      }
-
       try {
+        const useRenderImage = options.renderImage && config.renderAsImage;
+
+        if (useRenderImage) {
+          options.responseBody = options.responseBody || -1;
+        }
+
         const result = await executeRequest(url, options, {
           userAgent: options.userAgent || config.defaultUserAgent,
           cookies: options.cookies || config.defaultCookies,
           successMessage: "",
           errorMessage: "",
           showUrl: options.showurl || !config.hideUrlInResponse,
+          split: useRenderImage,
         });
-        if (options.renderImage && config.renderAsImage) {
-          if (ctx.markdownToImage) {
-            const imageBuffer = await ctx.markdownToImage.convertToImage(result);
-            return h.image(imageBuffer, "image/png");
-          } else {
-            return result + "\n\n(提示: 未安装 markdown-to-image-service 插件，无法渲染图片)";
+
+        if (useRenderImage) {
+          if (typeof result === "object" && "status" in result) {
+            const statusInfo = [result.status, result.headers].filter(Boolean).join("\n");
+            if (result.body && ctx.markdownToImage) {
+              const imageBuffer = await ctx.markdownToImage.convertToImage(result.body);
+              return [statusInfo + "\n", h.image(imageBuffer, "image/png")];
+            }
+            return statusInfo + (result.body ? "\n" + result.body : "");
           }
+          return String(result) + "\n\n(提示: 未安装 markdown-to-image-service 插件，无法渲染图片)";
         }
-        return result;
+        return result as string;
       } catch (e) {
         console.error("执行请求过程中发生未捕获的错误:", e);
         logger.error("执行请求过程中发生未捕获的错误:", e);
@@ -234,10 +239,10 @@ export function apply(ctx: Context, config: Config): void {
               return "--render-image 和 --response-body 不能同时使用";
             }
 
-            if (options.renderImage && config.renderAsImage) {
+            const useRenderImage = options.renderImage && config.renderAsImage;
+
+            if (useRenderImage) {
               options.responseBody = options.responseBody || -1;
-            } else if (options.renderImage) {
-              return "未启用 renderAsImage 功能，无法将响应体渲染为图片";
             }
 
             const result = await executeRequest(cmd2.url, options, {
@@ -251,16 +256,21 @@ export function apply(ctx: Context, config: Config): void {
                 (cmd2.showUrl !== undefined
                   ? cmd2.showUrl
                   : !config.hideUrlInResponse),
+              split: useRenderImage,
             });
-            if (options.renderImage && config.renderAsImage) {
-              if (ctx.markdownToImage) {
-                const imageBuffer = await ctx.markdownToImage.convertToImage(result);
-                return h.image(imageBuffer, "image/png");
-              } else {
-                return result + "\n\n(提示: 未安装 markdown-to-image-service 插件，无法渲染图片)";
+
+            if (useRenderImage) {
+              if (typeof result === "object" && "status" in result) {
+                const statusInfo = [result.status, result.headers].filter(Boolean).join("\n");
+                if (result.body && ctx.markdownToImage) {
+                  const imageBuffer = await ctx.markdownToImage.convertToImage(result.body);
+                  return [statusInfo + "\n", h.image(imageBuffer, "image/png")];
+                }
+                return statusInfo + (result.body ? "\n" + result.body : "");
               }
+              return String(result) + "\n\n(提示: 未安装 markdown-to-image-service 插件，无法渲染图片)";
             }
-            return result;
+            return result as string;
           } catch (e) {
             console.error(`执行 ${cmd2.name} 请求时发生未捕获的错误:`, e);
             logger.error(`执行 ${cmd2.name} 请求时发生未捕获的错误:`, e);
@@ -276,6 +286,8 @@ export function apply(ctx: Context, config: Config): void {
     }
   }
 
+  type ExecuteResult = string | { status: string; headers?: string; body?: string };
+
   async function executeRequest(
     url: string,
     options: any,
@@ -285,8 +297,9 @@ export function apply(ctx: Context, config: Config): void {
       successMessage: string;
       errorMessage: string;
       showUrl: boolean;
+      split?: boolean;
     },
-  ): Promise<string> {
+  ): Promise<ExecuteResult> {
     console.log(`开始执行请求: ${url}`);
     logger.info(`开始执行请求: ${url}`);
 
@@ -355,44 +368,49 @@ export function apply(ctx: Context, config: Config): void {
         const showHeaders = options.verbose || options.responseHeaders;
         const showBody = options.verbose || options.responseBody;
 
+        const useSplit = customConfig.split;
+        let statusText = "";
+        let headersText = "";
+        let bodyText = "";
+        const bodyLength = options.responseBody || "500";
+
         if (customConfig.showUrl) {
-          result += `请求 URL: ${url}\n`;
+          statusText += `请求 URL: ${url}\n`;
         }
-        result += `状态码: ${response.status} ${response.statusText || ""}\n`;
-        result += `响应时间: ${responseTime}ms\n\n`;
+        statusText += `状态码: ${response.status} ${response.statusText || ""}\n`;
+        statusText += `响应时间: ${responseTime}ms`;
 
         if (showHeaders) {
-          result += "响应头:\n";
+          headersText = "响应头:\n";
           for (const [key, value] of Object.entries(response.headers)) {
-            result += `${key}: ${value}\n`;
+            headersText += `${key}: ${value}\n`;
           }
-          result += "\n";
         }
 
         if (showBody) {
-          const bodyLength = options.responseBody || "500";
-          if (bodyLength === -1) {
-            result += "响应体:\n";
-          } else {
-            result += `响应体预览 (前${bodyLength}字符):\n`;
-          }
           const contentType = String(response.headers["content-type"] || "");
-          if (
-            contentType.includes("text") ||
-            contentType.includes("json") ||
-            contentType.includes("javascript")
-          ) {
-            let responseText =
-              typeof response.data === "string"
-                ? response.data
-                : JSON.stringify(response.data, null, 2);
+          if (contentType.includes("text") || contentType.includes("json") || contentType.includes("javascript")) {
+            let responseText = typeof response.data === "string"
+              ? response.data
+              : JSON.stringify(response.data, null, 2);
             if (bodyLength !== -1 && responseText.length > bodyLength) {
               responseText = responseText.substring(0, bodyLength) + "...";
             }
-            result += responseText;
+            bodyText = responseText;
           } else {
-            result += `[二进制数据 - ${contentType}]`;
+            bodyText = `[二进制数据 - ${contentType}]`;
           }
+        }
+
+        if (useSplit) {
+          return { status: statusText, headers: showHeaders ? headersText : undefined, body: showBody ? bodyText : undefined };
+        }
+
+        result = statusText + "\n";
+        if (showHeaders) result += "\n" + headersText + "\n";
+        if (showBody) {
+          result += bodyLength === -1 ? "响应体:\n" : `响应体预览 (前${bodyLength}字符):\n`;
+          result += bodyText;
         }
       } else {
         if (response.status < 400) {
