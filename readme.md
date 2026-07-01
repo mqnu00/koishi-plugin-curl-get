@@ -1,6 +1,6 @@
 # koishi-plugin-curl-get
 
-[![npm](https://img.shields.io/npm/v/koishi-plugin-curl-get?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-curl-get)
+[![npm](https://img.shields.io/npm/v/koishi-plugin-curl-get?style=flat-square)](https://www.npmjs.com/package/@mqn00/koishi-plugin-curl-get)
 
 一个 Koishi 插件，可以发送 curl 请求，支持绑定命令、Cookie、User-Agent，并返回响应内容。
 
