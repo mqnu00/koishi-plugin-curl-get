@@ -1,12 +1,13 @@
-import { Context, Schema } from "koishi";
+import { Context, Schema, h } from "koishi";
 import axios from "axios";
 import { URL } from "url";
+import {} from "koishi-plugin-markdown-to-image-service";
 
 export const name = "curl-get";
 
 export const inject = {
   required: [],
-  optional: ["onebot"],
+  optional: ["onebot", "markdownToImage"],
 };
 
 interface CustomCommand {
@@ -26,6 +27,7 @@ export interface Config {
   followRedirects: boolean;
   maxRedirects: number;
   hideUrlInResponse: boolean;
+  renderAsImage: boolean;
   customCommands: CustomCommand[];
 }
 
@@ -40,6 +42,9 @@ export const Config: Schema<Config> = Schema.object({
   hideUrlInResponse: Schema.boolean()
     .default(true)
     .description("在响应消息中隐藏URL"),
+  renderAsImage: Schema.boolean()
+    .default(false)
+    .description("将响应体作为 Markdown 渲染为图片 (需要 markdown-to-image-service 插件)"),
   customCommands: Schema.array(
     Schema.object({
       name: Schema.string().required().description("指令名称"),
@@ -103,10 +108,11 @@ export function apply(ctx: Context, config: Config): void {
       "responseBody",
       "--response-body <length:number> 显示响应体 (数字:长度, 默认500, -1不限制)",
       {
-        fallback: 500,
+        fallback: "",
       },
     )
     .option("showurl", "-s 显示URL (覆盖全局设置)", { fallback: false })
+    .option("renderImage", "--render-image 将响应体渲染为图片", { fallback: false })
     .action(async ({ options: opts, session }, url) => {
       const options = opts!;
       console.log(`curl 命令被触发，URL: ${url || "未提供"}`);
@@ -131,6 +137,14 @@ export function apply(ctx: Context, config: Config): void {
         return "请提供要访问的 URL";
       }
 
+      if (options.renderImage && options.responseBody) {
+        return "--render-image 和 --response-body 不能同时使用";
+      }
+
+      if (options.renderImage || config.renderAsImage) {
+        options.responseBody = options.responseBody || -1;
+      }
+
       try {
         const result = await executeRequest(url, options, {
           userAgent: options.userAgent || config.defaultUserAgent,
@@ -139,6 +153,14 @@ export function apply(ctx: Context, config: Config): void {
           errorMessage: "",
           showUrl: options.showurl || !config.hideUrlInResponse,
         });
+        if (options.renderImage || config.renderAsImage) {
+          if (ctx.markdownToImage) {
+            const imageBuffer = await ctx.markdownToImage.convertToImage(result);
+            return h.image(imageBuffer, "image/png");
+          } else {
+            return result + "\n\n(提示: 未安装 markdown-to-image-service 插件，无法渲染图片)";
+          }
+        }
         return result;
       } catch (e) {
         console.error("执行请求过程中发生未捕获的错误:", e);
@@ -177,10 +199,11 @@ export function apply(ctx: Context, config: Config): void {
           "responseBody",
           "--response-body <length:number> 显示响应体 (数字:长度, 默认500, -1不限制)",
           {
-            fallback: 500,
+            fallback: "",
           },
         )
         .option("showurl", "-s 显示URL (覆盖其他设置)", { fallback: false })
+        .option("renderImage", "--render-image 将响应体渲染为图片", { fallback: false })
         .action(async ({ options: opts, session }) => {
           const options = opts!;
           console.log(`自定义指令 ${cmd2.name} 被触发`);
@@ -205,7 +228,15 @@ export function apply(ctx: Context, config: Config): void {
           }
 
           try {
-            return await executeRequest(cmd2.url, options, {
+            if (options.renderImage && options.responseBody) {
+              return "--render-image 和 --response-body 不能同时使用";
+            }
+
+            if (options.renderImage || config.renderAsImage) {
+              options.responseBody = options.responseBody || -1;
+            }
+
+            const result = await executeRequest(cmd2.url, options, {
               userAgent:
                 options.userAgent || cmd2.userAgent || config.defaultUserAgent,
               cookies: options.cookies || cmd2.cookies || config.defaultCookies,
@@ -217,6 +248,15 @@ export function apply(ctx: Context, config: Config): void {
                   ? cmd2.showUrl
                   : !config.hideUrlInResponse),
             });
+            if (options.renderImage || config.renderAsImage) {
+              if (ctx.markdownToImage) {
+                const imageBuffer = await ctx.markdownToImage.convertToImage(result);
+                return h.image(imageBuffer, "image/png");
+              } else {
+                return result + "\n\n(提示: 未安装 markdown-to-image-service 插件，无法渲染图片)";
+              }
+            }
+            return result;
           } catch (e) {
             console.error(`执行 ${cmd2.name} 请求时发生未捕获的错误:`, e);
             logger.error(`执行 ${cmd2.name} 请求时发生未捕获的错误:`, e);
@@ -465,3 +505,4 @@ ${errorDetail}`;
     logger.info("curl-get 插件正在卸载");
   });
 }
+
