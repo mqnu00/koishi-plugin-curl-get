@@ -141,8 +141,10 @@ export function apply(ctx: Context, config: Config): void {
         return "--render-image 和 --response-body 不能同时使用";
       }
 
-      if (options.renderImage || config.renderAsImage) {
+      if (options.renderImage && config.renderAsImage) {
         options.responseBody = options.responseBody || -1;
+      } else if (options.renderImage) {
+        return "未启用 renderAsImage 功能，无法将响应体渲染为图片";
       }
 
       try {
@@ -153,7 +155,7 @@ export function apply(ctx: Context, config: Config): void {
           errorMessage: "",
           showUrl: options.showurl || !config.hideUrlInResponse,
         });
-        if (options.renderImage || config.renderAsImage) {
+        if (options.renderImage && config.renderAsImage) {
           if (ctx.markdownToImage) {
             const imageBuffer = await ctx.markdownToImage.convertToImage(result);
             return h.image(imageBuffer, "image/png");
@@ -232,8 +234,10 @@ export function apply(ctx: Context, config: Config): void {
               return "--render-image 和 --response-body 不能同时使用";
             }
 
-            if (options.renderImage || config.renderAsImage) {
+            if (options.renderImage && config.renderAsImage) {
               options.responseBody = options.responseBody || -1;
+            } else if (options.renderImage) {
+              return "未启用 renderAsImage 功能，无法将响应体渲染为图片";
             }
 
             const result = await executeRequest(cmd2.url, options, {
@@ -248,7 +252,7 @@ export function apply(ctx: Context, config: Config): void {
                   ? cmd2.showUrl
                   : !config.hideUrlInResponse),
             });
-            if (options.renderImage || config.renderAsImage) {
+            if (options.renderImage && config.renderAsImage) {
               if (ctx.markdownToImage) {
                 const imageBuffer = await ctx.markdownToImage.convertToImage(result);
                 return h.image(imageBuffer, "image/png");
