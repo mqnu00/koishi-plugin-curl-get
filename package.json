@@ -1,6 +1,6 @@
 {
-  "name": "koishi-plugin-curl-get",
-  "version": "0.0.3",
+  "name": "@mqn00/koishi-plugin-curl-get",
+  "version": "0.0.5",
   "description": "一个 Koishi 插件，可以发送 curl 请求，支持绑定命令、Cookie、User-Agent，并返回响应结果。",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",

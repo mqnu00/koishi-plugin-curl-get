@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.5
+
+### 新增
+- 支持 `markdown-to-image-service` 可选服务，新增 `--render-image` 选项将响应体渲染为图片
+- 渲染图片时状态码信息以文字返回，响应体渲染为图片
+- 添加 `renderAsImage` 全局配置项
+
+### 变更
+- 拆分模块：`index.ts` / `request.ts` / `render.ts`
+- `--render-image` 与 `--response-body` 互斥
+- 添加 `peerDependenciesMeta` 标记 `koishi-plugin-markdown-to-image-service` 为可选
+
 ## 0.0.4
 
 ### 新增
